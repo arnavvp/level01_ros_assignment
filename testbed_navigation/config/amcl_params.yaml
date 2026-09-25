@@ -1,0 +1,35 @@
+amcl:
+  ros__parameters:
+    use_sim_time: true
+    base_frame_id: "base_footprint"
+    odom_frame_id: "odom"
+    global_frame_id: "map"
+    scan_topic: "scan"
+    robot_model_type: "nav2_amcl::DifferentialMotionModel"
+    tf_broadcast: true
+    transform_tolerance: 1.0
+    laser_model_type: "likelihood_field"
+    laser_min_range: 0.1
+    laser_max_range: 12.0
+    max_beams: 60
+    laser_likelihood_max_dist: 2.0
+
+    min_particles: 500
+    max_particles: 2000
+    resample_interval: 1
+    update_min_d: 0.2
+    update_min_a: 0.2
+
+    # odom noise
+    alpha1: 0.05   # rotation noise due to rotation
+    alpha2: 0.05   # rotation noise due to translation
+    alpha3: 0.05   # translation noise due to translation
+    alpha4: 0.05   # translation noise due tp rotation
+
+    # starting pose which is the gazebo spawn pose only
+    set_initial_pose: true
+    initial_pose:
+      x: 0.0
+      y: 5.0
+      z: 0.0
+      yaw: 0.0

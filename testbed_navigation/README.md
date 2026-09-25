@@ -126,6 +126,8 @@ While testing if the bot is able to reach the goal pose, I added obstacles on do
 ![Fanned walls in the global costmap](media/rviz_lidar_output.png)
 3) Image showing planned path, lookahead pure pursuit waypoint in RViz
 ![Fanned walls in the global costmap](media/pp_waypoint.png)
+
+
 Demo videos: 
 - [Fully Functioning Navigation Pipeline](https://drive.google.com/file/d/16JM8kUl2kOCCqEW51BvcFyhWZBayCMCy/view?usp=drive_link)
 - [Narrow Crevice bug in simulation](https://drive.google.com/file/d/1Lz2YHUYpgpAQG9Pav9BJJmBwIA5bdWlR/view?usp=drive_link)

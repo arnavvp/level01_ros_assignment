@@ -1,0 +1,56 @@
+
+1. Missing brackets on ament_package
+
+File: testbed_description/CMakeLists.txt  (last line)
+How I found out: I tried colcon build right after cloning the repository, which failed immediately:
+             CMake Error at CMakeLists.txt:24:
+               Parse error.  Expected "(", got newline with text "\n".
+             Failed <<< testbed_description
+Reason: The file ended with "ament_package" instead of "ament_package()". So CMake couldn't parse it as a function
+Fix: ament_package changed to ament_package()
+
+2. robot_state_publisher was not using simulation time
+
+File: testbed_description/launch/robot_description.launch.py
+Way of finding out: I ran "ros2 param get /robot_state_publisher use_sim_time" in the terminal, which returned False, even though Gazebo, AMCL and Nav2 all run on sim time (/clock).
+Reason: The node was started with only the robot_description parameter. "use_sim_time" wasn't set (barebones launch file in the same package does sets it). The node stamped its TF with wall clock time ( around 1.79e9 s) whereas the rest of the system uses sim time. Mixed clocks end up causing TF extrapolation stale transform rejections in Nav2.
+Fix: parameters=[robot_description] was changed to parameters=[robot_description, {'use_sim_time': True}]
+Verified: "ros2 param get /robot_state_publisher use_sim_time" -> True
+
+3. Max range of LiDAR was too small for given environment
+
+File: testbed_description/urdf/testbed.gazebo (lidar_link_1 sensor, <range>)
+How I figured: "ros2 topic echo /scan --once | grep range_max" gave output as 1.5. I saw the walls (red dots) In RViz only when the robot was almost touching them.
+Reason: <max>1.5</max>. The map is 405 x 400 px at 0.05 m/px, which is around 20 x 20 m. With 1.5 m set as range most of beams return nothing, so AMCL gets around 0 wall LiDAR points to match against the map and costmaps will only see obstacles when the robot very very near them.
+Fix: <max>1.5</max> changed to <max>12.0</max>
+Verified: range_max: 12.0. RViz scan is showing the far walls of the room.
+
+4. Map folder wasn't installed by testbed_bringup
+
+File: testbed_bringup/CMakeLists.txt (install rule)
+Symptom: map_server failed during lifecycle "configure":
+             [map_io]: Failed processing YAML file
+               .../install/testbed_bringup/share/testbed_bringup/maps/testbed_world.yaml
+               ... for reason: bad file
+             [lifecycle_manager_map]: Failed to bring up all requested nodes.
+Reason: ROS resolves package files from install/ and not from src/. The install rule only copied `launch` and the maps/ folder (yaml and pgm) didn't ever exist under install/.../share/testbed_bringup/
+Fix: install(DIRECTORY launch DESTINATION share/${PROJECT_NAME}/) was changed to install(DIRECTORY launch maps DESTINATION share/${PROJECT_NAME}/)
+
+5. Image path in map YAML
+
+File: testbed_bringup/maps/testbed_world.yaml
+Way to find out: After fixing 4th error, map_server was still failing to load the map image.
+Cause: "image: wrong_path_testbed_world.pgm": no such file exists. Actual image name is testbed_world.pgm
+Fix: image: "wrong_path_testbed_world.pgm" changed to "image: testbed_world.pgm"
+Verified: map_server log: "Read map ... 405 X 400 map @ 0.05 m/cell", lifecycle manager: "Managed nodes are active".
+
+
+OTHER OBSERVATIONS (not urgent)
+
+1) Differential drive wheel_separation vs. mesh geometry
+   File : testbed_description/urdf/testbed.gazebo
+   Plugin: wheel_separation = 0.35 m. But the wheel mesh centres are at y = +0.150 and -0.226 m which is approximately 0.376 m apart. This mismatch could make the commanded rotation speed differ from the actual one.
+
+2) Detected via help of AI: Stray character in the IMU plugin block
+   File : testbed_description/urdf/testbed.gazebo
+   "<initial_orientation_as_reference>false</initial_orientation_as_reference>>" has an extra '>'. It is parsed as a stray text only so its harmless but should be removed.
